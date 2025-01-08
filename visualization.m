@@ -49,7 +49,7 @@ function visualization(car, result)
     
     % Define the figure
     fig = figure;
-    set(fig, 'Position', [500, 400, 1100, 1000]);
+    set(fig, 'Position', [100, 50, 1000, 800]);
 
     animPanel = uipanel(fig, 'Units', 'normalized', 'Position', [0, 0.75, 1, 0.25]);
 

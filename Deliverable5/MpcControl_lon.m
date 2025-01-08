@@ -44,38 +44,53 @@ classdef MpcControl_lon < MpcControlBase
             us = mpc.us; 
             
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
-            Q = [0,0;0,100]; % Weight for state tracking error
-            R = 10*eye(nu);  % Weight for control effort
+            Q = [10,0;0,10]; % Weight for state tracking error
+            R = 2*eye(nu);  % Weight for control effort
             
-            T_settle = 10; % Settling time in seconds
-            N_settle = ceil(T_settle / mpc.Ts); % Number of steps for settling
+            load('X_tight.mat','X_tight')
+            load('U_tight.mat', 'U_tight')
 
-            % Prediction horizon constraints and objective
-            M = [1;-1];
-            m = [1;1];
+            F = X_tight.A;
+            f = X_tight.b;
+            M = U_tight.A;
+            m = U_tight.b;
+
+            x_safe = 6;
 
             x = sdpvar(nx,N,'full');
+            x_lead = sdpvar(nx,N,'full');
+
+            Delta = sdpvar(nx,N,'full');
+
             u = sdpvar(nu,N-1,'full');
+            u_lead = sdpvar(nu,N-1,'full');
+
 
             % Initialize constraints and objective
-            con = (x(:,1) == x0); % Initial state constraint
+            con = (x(:,1) == x0);
+            con = con + (x_lead(:,1) == x0other);
+            con = con + (Delta(:,1) == x_lead(:,1)-x(:,1)-[x_safe;0]);
+
             con = con + (u0 == u(:,1));
-            obj = (x(:,1) - V_ref)' * Q * (x(:,1) - V_ref); % Initial state cost
+            con = con + (u(:,1) - 0.5 <= u_lead(:,1)) + (u(:,1) + 0.5 >= u_lead(:,1));
+
+            obj = (x0other(:,1)-x(:,1))' * Q * (x0other(:,1)-x(:,1)); % Initial state cost
 
             % Add constraints and objective for the prediction horizon
             for i = 1:N-1
-                % Dynamics constraints
-                u(:,i) = u(:,i);
-                x(:,i) = x(:,i);
-                con = con + (x(:,i+1) == xs + A * (x(:,i)-xs) + B * (u(:,i)-us) + B * d_est);
+                con = con + (F * Delta(:,i) <= f);
+%                 con = con + (x(:,i+1) == xs + A * (x(:,i)-xs) + B * (u(:,i)-us));
+%                 con = con + (x_lead(:,i+1) == xs + A * (x_lead(:,i)-xs) + B * (u_lead(:,i)-us));
+                con = con + (Delta(:,i+1) ==  A * (x_lead(:,i)-x(:,i)-[x_safe;0]) - B * u(:,i) + B* u_lead(:,i));
                 % Input constraints
                 con = con + (M * u(:,i) <= m);
+                con = con + (u(:,i) - 0.5 <= u_lead(:,i)) + (u(:,i) + 0.5 >= u_lead(:,i));
                 % Cost function
-                obj = obj + (x(:,i) - V_ref)' * Q * (x(:,i) - V_ref) + (u(:,i) - u_ref)' * R * (u(:,i) - u_ref);
+                obj = obj + (Delta(:,i))' * Q * (Delta(:,i)) + (u_lead(:,i)-u(:,i))' * R * (u_lead(:,i)-u(:,i));
             end
 
             % Terminal cost
-            obj = obj + (x(:,N) - V_ref)' * Q * (x(:,N) - V_ref);
+%             obj = obj + (x(:,N) - V_ref)' * Q * (x(:,N) - V_ref);
 
             % [u, X, U] = mpc_lon.get_u(x0, ref);
             % with debugVars = {X_var, U_var};
@@ -116,7 +131,7 @@ classdef MpcControl_lon < MpcControlBase
 
             % Compute steady-state input
             if abs(B) > 1e-6 % Avoid division by zero
-                us_ref = (1-A)*(Vs_ref-xs)/B + us - d_est;
+                us_ref = (1-A)*(Vs_ref-xs)/B + us;
             else
                 us_ref = us; % Default to zero if dynamics are degenerate
             end

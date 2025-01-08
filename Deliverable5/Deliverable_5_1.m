@@ -8,19 +8,24 @@ sysd = c2d(sys, Ts);
 [Ad, Bd, Cd, ~] = ssdata(sysd);
 
 Q = 10*eye(2);
-R = 2;
-
-K = 
+R = 1.6;
 
 Ad_lon = Ad([1,4],[1,4]);
 Bd_lon = Bd([1,4],2);
 Cd_lon = Cd([1,4],[1,4]);
 
 max_iter = 100;
-tol = 1e-3;
+tol = 1e-2;
 
-Eps = tube_mpc_sets(Ad_lon, Bd_lon, us(2), max_iter, tol);
-
+Eps = tube_mpc_sets(Ad_lon, Bd_lon, Q, R, us(2), max_iter, tol);
+%%
+load("K.mat")
+load("Eps.mat")
+load('U_tight.mat')
+load('X_tight.mat')
+load("Xf.mat")
+plot(X_tight)
+% plot(Xf)
 
 %%
 clc;clear;
@@ -36,21 +41,22 @@ mpc_lon = MpcControl_lon(sys_lon, Ts, H_lon);
 mpc_lat = MpcControl_lat(sys_lat, Ts, H_lon);
 mpc = car.merge_lin_controllers(mpc_lon, mpc_lat);
 
-estimator = LonEstimator(sys_lon, Ts);
+ref1 = [0 120/3.6];
+ref2 = [0 120/3.6];
+otherRef = 100 / 3.6;
 
-x0 = [0 0 0 80/3.6]'; % (x, y, theta, V) 
-ref1 = [0 80/3.6]'; % (y ref, V ref) 
-ref2 = [3 50/3.6]'; % (y ref, V ref)
-params = {}; 
-params.Tf = 15; 
-params.myCar.model = car; 
-params.myCar.x0 = x0;
-params.myCar.est_fcn = @estimator.estimate;
-params.myCar.est_dist0 = 0;
-params.myCar.u = @mpc.get_u; 
-params.myCar.ref = car.ref_step(ref1, ref2, 2); % delay reference step by 2s;
+params = {};
+params.Tf = 25;
+params.myCar.model = car;
+params.myCar.x0 = [0 0 0 80/3.6]';
+params.myCar.u = @mpc.get_u;
+params.myCar.ref = car.ref_step(ref1, ref2, 5);
+params.otherCar.model = car;
+params.otherCar.x0 = [15 0 0 otherRef]';
+params.otherCar.u = car.u_const(otherRef);
 result = simulate(params);
 visualization(car, result);
+
 
 %% Plotting all closed loop dynamics
 X = result.myCar.X;
