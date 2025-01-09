@@ -30,8 +30,9 @@ classdef LonEstimator
             Bd_hat = Bd; % As Bd (2x1)
 
             Ob = obsv(Ad, Cd);
+            Aug = [Ad-eye(2), Bd_hat;Cd, zeros(ny, 1)];
 
-
+            rank(Aug)
 
             % Extended state dynamics
             est.xs_hat = [xs; 0];  % Extended state including disturbance
@@ -41,7 +42,7 @@ classdef LonEstimator
             est.C_hat = [Cd, zeros(ny, 1)];
             
             % Place poles slightly faster than the system dynamics
-            poles = eig(est.A_hat)*0.8;  % Pole placement
+            poles = eig(est.A_hat)*0.7;  % Pole placement
             est.L = place(est.A_hat', est.C_hat', poles)';
             
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE

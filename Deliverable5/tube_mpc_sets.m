@@ -42,8 +42,10 @@ title('Minimal Robust Invariant Set (mRPI)');
 xlabel('State (x)');
 ylabel('State (V)');
 
+x_safe = 10;
+save('x_safe',"x_safe")
 
-X = Polyhedron([-1 0],[0]);  % the space between the two cars should be at least 6 which is 1.7m before the two cars touche.
+X = Polyhedron([-1 0],-(6-x_safe));  % the space between the two cars should be at least 6 which is 1.7m before the two cars touche.
 U = Polyhedron([1; -1], [1; 1]);          % Input constraints
 
 Eps.minHRep();
@@ -71,10 +73,13 @@ while 1
     t = Xf.b;
     preXf = Xf*Acl;
     Xf = intersect(Xf, preXf);
+    plot(Xf)
     if prevXf.volume - Xf.volume < 1e-4
         break
     end
 end
+
+plot(Xf);
 save('Xf.mat','Xf');
 
 

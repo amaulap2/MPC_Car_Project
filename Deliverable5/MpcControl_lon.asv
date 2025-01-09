@@ -44,8 +44,8 @@ classdef MpcControl_lon < MpcControlBase
             us = mpc.us; 
             
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
-            load('Q.mat','Q')
-            load('R.mat','R')
+            Q = [10,0;0,0]; % Weight for state tracking error
+            R = 1.6*eye(nu);  % Weight for control effort
             
             load('X_tight.mat','X_tight')
             load('U_tight.mat', 'U_tight')
@@ -75,7 +75,7 @@ classdef MpcControl_lon < MpcControlBase
 
             con = con + (u0 == u(:,1));
 
-            obj = (Delta(:,1))' * Q * (Delta(:,1)) + u(:,1)*R*u(:,1); % Initial state cost
+            obj = (Delta(:,1))' * Q * (Delta(:,1)); % Initial state cost
 %             obj = [];
             % Add constraints and objective for the prediction horizon
             for i = 1:N-1

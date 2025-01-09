@@ -8,7 +8,10 @@ sysd = c2d(sys, Ts);
 [Ad, Bd, Cd, ~] = ssdata(sysd);
 
 Q = 10*eye(2);
-R = 1.6;
+R = 0.5;
+
+save('Q.mat','Q')
+save('R.mat','R')
 
 Ad_lon = Ad([1,4],[1,4]);
 Bd_lon = Bd([1,4],2);
@@ -25,7 +28,8 @@ load('U_tight.mat')
 load('X_tight.mat')
 load("Xf.mat")
 plot(X_tight)
-% plot(Xf)
+hold on;
+plot(Xf,'Color','b')
 
 %%
 clc;clear;
@@ -41,8 +45,8 @@ mpc_lon = MpcControl_lon(sys_lon, Ts, H_lon);
 mpc_lat = MpcControl_lat(sys_lat, Ts, H_lon);
 mpc = car.merge_lin_controllers(mpc_lon, mpc_lat);
 
-ref1 = [0 120/3.6];
-ref2 = [0 120/3.6];
+ref1 = [0 100/3.6];
+ref2 = [0 100/3.6];
 otherRef = 100 / 3.6;
 
 params = {};
@@ -61,5 +65,3 @@ visualization(car, result);
 %% Plotting all closed loop dynamics
 X = result.myCar.X;
 U = result.myCar.U;
-
-X(4,end-20:end)

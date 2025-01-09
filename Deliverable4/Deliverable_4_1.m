@@ -53,4 +53,12 @@ visualization(car, result);
 X = result.myCar.X;
 U = result.myCar.U;
 
-X(4,end-20:end)
+figure;
+
+plot(0:(length(X)-1), X(4,:), '-o', 'LineWidth', 2);
+xlabel('Time t (deciseconds)');
+ylabel('Velocity V (m/s)');
+yline(ref2(2),'--','LineWidth', 2);
+title('Velocity');
+legend('V','Reference','Location','southeast');
+grid on;
