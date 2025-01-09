@@ -8,7 +8,7 @@ sysd = c2d(sys, Ts);
 [Ad, Bd, Cd, ~] = ssdata(sysd);
 
 Q = 10*eye(2);
-R = 0.5;
+R = 2.5;
 
 save('Q.mat','Q')
 save('R.mat','R')

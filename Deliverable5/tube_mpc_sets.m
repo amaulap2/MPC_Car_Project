@@ -3,10 +3,6 @@ function Eps = tube_mpc_sets(Ad, Bd, Q, R, uT_s, max_iter, tol)
 % Design LQR Controller 
 % Method 1
 K = -dlqr(Ad, -Bd, Q, R);
-% % Method 2
-% p = eig(Ad)-0.05;  % Desired poles for a 2D system
-% K = place(Ad, Bd, p);
-
 
 save('K.mat', 'K');
 
@@ -42,7 +38,7 @@ title('Minimal Robust Invariant Set (mRPI)');
 xlabel('State (x)');
 ylabel('State (V)');
 
-x_safe = 10;
+x_safe = 20;
 save('x_safe',"x_safe")
 
 X = Polyhedron([-1 0],-(6-x_safe));  % the space between the two cars should be at least 6 which is 1.7m before the two cars touche.

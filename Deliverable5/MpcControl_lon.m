@@ -46,11 +46,13 @@ classdef MpcControl_lon < MpcControlBase
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             load('Q.mat','Q')
             load('R.mat','R')
+            load('K.mat','K')
             
             load('X_tight.mat','X_tight')
             load('U_tight.mat', 'U_tight')
             load('x_safe.mat','x_safe')
             load('Xf.mat','Xf')
+            load('Eps.mat', 'Eps')
 
             F = X_tight.A;
             f = X_tight.b;
@@ -69,19 +71,22 @@ classdef MpcControl_lon < MpcControlBase
 
 
             % Initialize constraints and objective
-            con = (x(:,1) == x0);
-            con = con + (x_lead(:,1) == x0other);
-            con = con + (Delta(:,1) == x_lead(:,1)-x(:,1)-[x_safe;0]);
+%             con = (x(:,1) == x0);
+%             con = con + (x_lead(:,1) == x0other);
+%             con = con + (Delta(:,1) == x_lead(:,1)-x(:,1)-[x_safe;0]);
+            % Slide 33 chap 8 
+            FEps = Eps.A;
+            fEps = Eps.b;
+            con = (FEps * (Delta(:,1) - (x_lead(:,1)-x(:,1)-[x_safe;0])) <= fEps);  % <-->
 
-            con = con + (u0 == u(:,1));
+            con = con + (u(:,1) == K*(Delta(:,1) - (x_lead(:,1)-x(:,1)-[x_safe;0])) + u0);
 
             obj = (Delta(:,1))' * Q * (Delta(:,1)) + u(:,1)*R*u(:,1); % Initial state cost
-%             obj = [];
+
             % Add constraints and objective for the prediction horizon
             for i = 1:N-1
                 con = con + (F * Delta(:,i) <= f);
-                con = con + (Delta(:,i+1) == A*(x_lead(:,i)-x(:,i)-[x_safe;0]) - B* u(:,i));
-                con = con + (F * Delta(:,i+1) <= f);
+                con = con + (Delta(:,i+1) == A*(Delta(:,i)) - B* u(:,i));
                 % Input constraints
                 con = con + (M * u(:,i) <= m);
                 % Cost function
