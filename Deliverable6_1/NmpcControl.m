@@ -60,15 +60,9 @@ classdef NmpcControl < handle
             slack = opti.variable(1,N);
 
             % Vehicle parameters
-            lr = car.lr;
-            lf = car.lf; 
-            Pmax = car.Pmax;
-            Cd = car.Cd;
-            Af = car.Af; 
-            Cr = car.Cr; 
-            m = car.mass;
-            rho = car.rho; 
             g = car.g; 
+
+            Ts = car.Ts;
 
             opti.subject_to(X(:, 1) == obj.x0);
             opti.subject_to( obj.u0 == U(:,1) );
@@ -78,22 +72,18 @@ classdef NmpcControl < handle
             Q = 5*eye(2);
             R = 10*eye(nu);
 
+            f = @car.f;
+
             % Dynamics and constraints
             for k = 1:N-1
-                beta = atan((lr * tan(U(1, k))) / (lr + lf));
 
-                Fmotor = (U(2, k) * Pmax) / max(X(4, k), 0.1); % Prevent division by zero
-                Fdrag = 0.5 * rho * Cd * Af * X(4, k)^2;
-                Froll = Cr * m * g;
+                k1 = f(X(:,k), U(:,k));
+                k2 = f(X(:,k)+Ts/2*k1, U(:,k));
+                k3 = f(X(:,k)+Ts/2*k2, U(:,k));
+                k4 = f(X(:,k)+Ts*k3, U(:,k));
+                x_next = X(:,k) + Ts/6*(k1+2*k2+2*k3+k4);
 
-                x_dot = [  
-                    X(4, k) * cos(X(3, k) + beta); 
-                    X(4, k) * sin(X(3, k) + beta);       
-                    X(4, k) / lr * sin(beta);          
-                    (Fmotor - Fdrag - Froll) / m      
-                    ];
-
-                opti.subject_to(X(:, k+1) == X(:, k) + car.Ts * x_dot);
+                opti.subject_to(X(:, k+1) == X(:, k) + x_next);
 
                 opti.subject_to(-0.5 <= X(2, k)); % y constraints
                 opti.subject_to(X(2, k) <= 3.5);

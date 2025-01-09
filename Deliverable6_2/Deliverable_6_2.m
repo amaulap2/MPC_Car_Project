@@ -9,7 +9,6 @@ x0_ego = [0 0 0 80/3.6]';
 x0_other = [20 0 0 80/3.6]';
 ref1 = [0 80/3.6]'; 
 ref2 = [3 100/3.6]';
-u = mpc.get_u(x0, ref); % check if the open−loop prediction is reasonable
 
 params = {}; 
 params.Tf = 15; 

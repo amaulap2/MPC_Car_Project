@@ -2,9 +2,10 @@ function Eps = tube_mpc_sets(Ad, Bd, Q, R, uT_s, max_iter, tol)
 
 % Design LQR Controller 
 % Method 1
-K = -dlqr(Ad, -Bd, Q, R);
-
+[K,Qf,~] = dlqr(Ad, -Bd, Q, R);
+K = -K;
 save('K.mat', 'K');
+save('Qf.mat','Qf');
 
 % Define the 1D disturbance set W and map through Bd
 W = Polyhedron([-1; 1], [0.5; 0.5]);  % u_T ∈ [-0.5, 0.5]
@@ -38,7 +39,7 @@ title('Minimal Robust Invariant Set (mRPI)');
 xlabel('State (x)');
 ylabel('State (V)');
 
-x_safe = 20;
+x_safe = 7;
 save('x_safe',"x_safe")
 
 X = Polyhedron([-1 0],-(6-x_safe));  % the space between the two cars should be at least 6 which is 1.7m before the two cars touche.

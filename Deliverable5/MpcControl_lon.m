@@ -47,6 +47,7 @@ classdef MpcControl_lon < MpcControlBase
             load('Q.mat','Q')
             load('R.mat','R')
             load('K.mat','K')
+            load('Qf','Qf')
             
             load('X_tight.mat','X_tight')
             load('U_tight.mat', 'U_tight')
@@ -67,26 +68,26 @@ classdef MpcControl_lon < MpcControlBase
             Delta = sdpvar(nx,N,'full');
 
             u = sdpvar(nu,N-1,'full');
-            u_lead = sdpvar(nu,N-1,'full');
+            mu_tube = sdpvar(nu,N-1,'full');
 
 
             % Initialize constraints and objective
-%             con = (x(:,1) == x0);
-%             con = con + (x_lead(:,1) == x0other);
-%             con = con + (Delta(:,1) == x_lead(:,1)-x(:,1)-[x_safe;0]);
+            con = (x(:,1) == x0);
+            con = con + (x_lead(:,1) == x0other);
             % Slide 33 chap 8 
             FEps = Eps.A;
             fEps = Eps.b;
-            con = (FEps * (Delta(:,1) - (x_lead(:,1)-x(:,1)-[x_safe;0])) <= fEps);  % <-->
+            con = con + (FEps * ((x_lead(:,1)-x(:,1)-[x_safe;0]) - Delta(:,1)) <= fEps);  % <-->
 
-            con = con + (u(:,1) == K*(Delta(:,1) - (x_lead(:,1)-x(:,1)-[x_safe;0])) + u0);
+            con = con + (mu_tube(:,1) == u0);
+            con = con + (mu_tube(:,1) == K*((x_lead(:,1)-x(:,1)-[x_safe;0]) - Delta(:,1)) + u(:,1));
 
             obj = (Delta(:,1))' * Q * (Delta(:,1)) + u(:,1)*R*u(:,1); % Initial state cost
 
             % Add constraints and objective for the prediction horizon
             for i = 1:N-1
                 con = con + (F * Delta(:,i) <= f);
-                con = con + (Delta(:,i+1) == A*(Delta(:,i)) - B* u(:,i));
+                con = con + (Delta(:,i+1) == A*(Delta(:,i)) - B * u(:,i));
                 % Input constraints
                 con = con + (M * u(:,i) <= m);
                 % Cost function
@@ -95,11 +96,11 @@ classdef MpcControl_lon < MpcControlBase
 
             % Terminal cost
             con = con + (FF * Delta(:,N) <= Ff);
-            obj = obj + Delta(:,N)' * Q * Delta(:,N);
+            obj = obj + Delta(:,N)' * Qf * Delta(:,N);
 
             % [u, X, U] = mpc_lon.get_u(x0, ref);
             % with debugVars = {X_var, U_var};
-            debugVars = {u, u_lead};
+            debugVars = {};
 
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

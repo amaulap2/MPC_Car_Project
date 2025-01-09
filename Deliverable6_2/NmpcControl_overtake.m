@@ -1,4 +1,4 @@
-classdef NmpcControl < handle
+classdef NmpcControl_overtake < handle
 
     properties
         % The NMPC problem
@@ -29,7 +29,7 @@ classdef NmpcControl < handle
     end
 
     methods
-        function obj = NmpcControl(car, H)
+        function obj = NmpcControl_overtake(car, H)
 
             import casadi.*
 
@@ -82,7 +82,7 @@ classdef NmpcControl < handle
             Q = 5*eye(2);
             R = 2*eye(nu);
 
-            p_diff = X(1:2, 1) - X_other(1:2,1); % ego position - obstacle position
+            p_diff = X(1:2,1) - X_other(1:2,1) ; % ego position - obstacle position
 
             a = 4.3/2;
             b = 1.8/2;
@@ -91,16 +91,14 @@ classdef NmpcControl < handle
 
             overtake_before_too_late = 10;
 
-            if (p_diff'*H*p_diff < 1 + overtake_before_too_late) && (X(1,1) < X_other(1,1))
-
-                ref(1) = 3;
-                ref(2) = obj.ref(2);
-            elseif (p_diff'*H*p_diff < 1 + overtake_before_too_late) && (X(1,1) > X_other(1,1)
-                ref(1) = 0;
-                ref(2) = obj.ref(2);
-            else
-                ref = obj.ref;
-            end
+%             if (p_diff'*H*p_diff < 1 + overtake_before_too_late) 
+% 
+%                 ref(1) = 3;
+%                 ref(2) = obj.ref(2);
+% 
+%             else
+%                 ref = obj.ref;
+%             end
     
             % Dynamics and constraints
             for k = 1:N-1
@@ -119,6 +117,7 @@ classdef NmpcControl < handle
 
                 opti.subject_to(X(:, k+1) == X(:, k) + car.Ts * x_dot);
 
+                opti.subject_to(p_diff'*H*p_diff >= 1 + overtake_before_too_late);
                 opti.subject_to(-0.5 <= X(2, k)); % y constraints
                 opti.subject_to(X(2, k) <= 3.5);
                 opti.subject_to(-(deg2rad(5)+slack(k)) <= X(3, k)); % theta constraints
@@ -128,7 +127,8 @@ classdef NmpcControl < handle
                 opti.subject_to(-deg2rad(30) <= U(1, k)); % delta constraints
                 opti.subject_to(U(1, k) <= deg2rad(30));
 
-                cost = cost + ((X([2,4], k)-ref)' * Q * (X([2,4], k)-ref));
+                cost = cost + ((X([2,4], k) - obj.ref)' * Q * (X([2,4], k) - obj.ref));
+                cost = cost + ((U(:,k)-U(:,k-1))' * R * (U(:,k)-U(:,k-1)));
                 cost = cost + (10000*slack(k)^2);
                 
             end
