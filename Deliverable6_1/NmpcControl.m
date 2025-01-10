@@ -59,9 +59,6 @@ classdef NmpcControl < handle
             U = opti.variable(nu, N - 1); 
             slack = opti.variable(1,N);
 
-            % Vehicle parameters
-            g = car.g; 
-
             Ts = car.Ts;
 
             opti.subject_to(X(:, 1) == obj.x0);

@@ -3,7 +3,7 @@ Ts = 1/10; % Sample time
 car = Car(Ts);
 [xs, us] = car.steady_state(80 / 3.6);
 
-H = 15; 
+H =15; 
 mpc = NmpcControl_overtake(car, H);
 x0_ego = [0 0 0 80/3.6]'; 
 x0_other = [20 0 0 80/3.6]';

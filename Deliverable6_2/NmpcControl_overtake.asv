@@ -62,49 +62,56 @@ classdef NmpcControl_overtake < handle
 
             Ts = car.Ts;
 
-            opti.subject_to(X(:, 1) == obj.x0);
+            opti.subject_to(obj.x0 == X(:, 1));
             opti.subject_to( obj.u0 == U(:,1) );
 
-            opti.subject_to(X_other(:, 1) == obj.x0other);
+            opti.subject_to(obj.x0other == X_other(:, 1));
             
             cost = 0;
 
-            Q = [0.1 0;0 2];
-            R = 10*eye(nu);
+            Q=diag([0 1 1 1]);
+            R=eye(2);
+            x_ref=[0; obj.ref(1); 0; obj.ref(2)];
 
-            a = 4.3/2;
-            b = 1.8/2;
+%             a = 4.3/2;
+%             b = 1.8/2;
+% 
+%             H = [1/a^2 0;0 1/b^2];
+              H=diag([1/100 1/9]);
 
-            H = [1/a^2 0;0 1/b^2];
-%               H=diag([1/100 1/9]);
-
-            overtake_before_too_late = 10;
+%             overtake_before_too_late = 9;
     
             x_next = @(x,u) RK4(x,u,Ts,@car.f);
     
-            % Dynamics and constraints
-            for k = 1:N-1
+            % Constraints on Xother
+            opti.subject_to(X_other(1,2)==X_other(1,1)+X_other(4,1)*car.Ts);
+            opti.subject_to( X_other([2,3],2) ==X_other([2,3],1));
+            opti.subject_to(X_other(4,2)==X_other(4,1));
+            
+            % Constraints on U and X
+            opti.subject_to(-0.5236 <= U(1,1) <= 0.5236);
+            opti.subject_to(-1.0 <= U(2,1) <= 1.0);
+            opti.subject_to(X(:,2)==f_discrete(X(:,1),U(:,1)))
+            
+            for k=2:N-1
                 
-                p_diff = X(1:2,k) - X_other(1:2,k) ; % ego position - obstacle position
-
-                opti.subject_to(X(:, k+1) == x_next(X(:, k),U(:,k)));
                 % Constraints on Xother
                 opti.subject_to(X_other(1,k+1)==X_other(1,k)+X_other(4,k)*car.Ts)
                 opti.subject_to(X_other([2,3],k+1)==X_other([2,3],k));
                 opti.subject_to(X_other(4,k+1)==X_other(4,k));
 
-                opti.subject_to(p_diff'*H*p_diff >= 1 + overtake_before_too_late);
-                opti.subject_to(-0.5 <= X(2, k)); % y constraints
-                opti.subject_to(X(2, k) <= 3.5);
-                opti.subject_to(-(deg2rad(5)) <= X(3, k+1)); % theta constraints
-                opti.subject_to(X(3, k+1) <= deg2rad(5));
-                opti.subject_to(-1 <= U(2, k)); % u_T constraints
-                opti.subject_to(U(2, k) <= 1);
-                opti.subject_to(-deg2rad(30) <= U(1, k)); % delta constraints
-                opti.subject_to(U(1, k) <= deg2rad(30));
+                % Avoid collisions
+                opti.subject_to([X(1,k)-X_other(1,k);X(2,k)-X_other(2,k)]'*H_const*[X(1,k)-Xother(1,k);X(2,k)-Xother(2,k)]>= 1);
 
-                cost = cost + ((X([2,4], k) - obj.ref)' * Q * (X([2,4], k) - obj.ref));
-                cost = cost + ((U(:,k)-U(:,k-1))' * R * (U(:,k)-U(:,k-1)));                
+                % Constraints on X and U
+                opti.subject_to(X(:,k+1) == f_discrete(X(:,k),U(:,k)))
+                opti.subject_to(-0.5 <= X(2,k) <= 3.5);
+                opti.subject_to(-0.0873 <= X(3,k) <= 0.0873);
+                opti.subject_to(-0.5236 <= U(1,k) <= 0.5236);
+                opti.subject_to(-1.0 <= U(2,k) <= 1.0);
+
+                % Update cost
+                cost=cost+((X(:,k)-x_ref)'*Q*(X(:,k)-x_ref))+(U(:,k)'*R*U(:,k));
             end
             
 
