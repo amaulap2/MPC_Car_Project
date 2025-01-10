@@ -44,8 +44,8 @@ classdef MpcControl_lat < MpcControlBase
             us = mpc.us; 
             
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
-            Q = 10*eye(nx); % Weight for state tracking error
-            R = 10*eye(nu);  % Weight for control effort
+            Q = 5*eye(nx); % Weight for state tracking error
+            R = 400*eye(nu);  % Weight for control effort
 
             T_settle = 3; % Settling time in seconds
 

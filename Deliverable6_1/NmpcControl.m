@@ -65,30 +65,25 @@ classdef NmpcControl < handle
             Ts = car.Ts;
 
             opti.subject_to(X(:, 1) == obj.x0);
-            opti.subject_to( obj.u0 == U(:,1) );
+            opti.subject_to( obj.u0 == U(:,1));
             
             cost = 0;
 
             Q = 5*eye(2);
-            R = 10*eye(nu);
+            R = 8*eye(nu);
 
-            f = @car.f;
+            x_next = @(x,u) RK4(x,u,Ts,@car.f);
 
             % Dynamics and constraints
             for k = 1:N-1
 
-                k1 = f(X(:,k), U(:,k));
-                k2 = f(X(:,k)+Ts/2*k1, U(:,k));
-                k3 = f(X(:,k)+Ts/2*k2, U(:,k));
-                k4 = f(X(:,k)+Ts*k3, U(:,k));
-                x_next = X(:,k) + Ts/6*(k1+2*k2+2*k3+k4);
 
-                opti.subject_to(X(:, k+1) == X(:, k) + x_next);
+                opti.subject_to(X(:, k+1) == x_next(X(:,k), U(:,k)));
 
                 opti.subject_to(-0.5 <= X(2, k)); % y constraints
                 opti.subject_to(X(2, k) <= 3.5);
-                opti.subject_to(-(deg2rad(5)+slack(k)) <= X(3, k)); % theta constraints
-                opti.subject_to(X(3, k) <= deg2rad(5)+slack(k));
+                opti.subject_to(-(deg2rad(5)) <= X(3, k+1)); % theta constraints
+                opti.subject_to(X(3, k+1) <= deg2rad(5));
                 opti.subject_to(-1 <= U(2, k)); % u_T constraints
                 opti.subject_to(U(2, k) <= 1);
                 opti.subject_to(-deg2rad(30) <= U(1, k)); % delta constraints

@@ -7,8 +7,8 @@ sys = car.linearize(xs, us);
 sysd = c2d(sys, Ts);
 [Ad, Bd, Cd, ~] = ssdata(sysd);
 
-Q = 50*eye(2);
-R = 0.5;
+Q = 10*eye(2);
+R = 30;
 
 save('Q.mat','Q')
 save('R.mat','R')

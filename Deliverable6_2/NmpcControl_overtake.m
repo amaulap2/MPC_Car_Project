@@ -79,10 +79,8 @@ classdef NmpcControl_overtake < handle
             
             cost = 0;
 
-            Q = 5*eye(2);
+            Q = [1 0;0 5];
             R = 2*eye(nu);
-
-            p_diff = X(1:2,1) - X_other(1:2,1) ; % ego position - obstacle position
 
             a = 4.3/2;
             b = 1.8/2;
@@ -91,14 +89,6 @@ classdef NmpcControl_overtake < handle
 
             overtake_before_too_late = 10;
 
-%             if (p_diff'*H*p_diff < 1 + overtake_before_too_late) 
-% 
-%                 ref(1) = 3;
-%                 ref(2) = obj.ref(2);
-% 
-%             else
-%                 ref = obj.ref;
-%             end
     
             % Dynamics and constraints
             for k = 1:N-1
@@ -115,13 +105,20 @@ classdef NmpcControl_overtake < handle
                     (Fmotor - Fdrag - Froll) / m      
                     ];
 
+                
+                p_diff = X(1:2,k) - X_other(1:2,k) ; % ego position - obstacle position
+
                 opti.subject_to(X(:, k+1) == X(:, k) + car.Ts * x_dot);
+                % Constraints on Xother
+                opti.subject_to(X_other(1,k+1)==X_other(1,k)+X_other(4,k)*car.Ts)
+                opti.subject_to(X_other([2,3],k+1)==X_other([2,3],k));
+                opti.subject_to(X_other(4,k+1)==X_other(4,k));
 
                 opti.subject_to(p_diff'*H*p_diff >= 1 + overtake_before_too_late);
                 opti.subject_to(-0.5 <= X(2, k)); % y constraints
                 opti.subject_to(X(2, k) <= 3.5);
-                opti.subject_to(-(deg2rad(5)+slack(k)) <= X(3, k)); % theta constraints
-                opti.subject_to(X(3, k) <= deg2rad(5)+slack(k));
+                opti.subject_to(-(deg2rad(5)) <= X(3, k+1)); % theta constraints
+                opti.subject_to(X(3, k+1) <= deg2rad(5));
                 opti.subject_to(-1 <= U(2, k)); % u_T constraints
                 opti.subject_to(U(2, k) <= 1);
                 opti.subject_to(-deg2rad(30) <= U(1, k)); % delta constraints

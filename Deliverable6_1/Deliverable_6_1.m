@@ -7,7 +7,6 @@ H = 15;
 mpc = NmpcControl(car, H);
 x0 = [0 0 0 80/3.6]'; 
 ref = [3 100/3.6]';
-u = mpc.get_u(x0, ref); % check if the open−loop prediction is reasonable
 
 params = {}; 
 params.Tf = 10; 
